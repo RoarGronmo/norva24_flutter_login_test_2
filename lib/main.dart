@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:oauth2/oauth2.dart' as oauth2;
 
+import 'package:url_launcher/url_launcher.dart';
+import 'package:uni_links/uni_links.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -9,12 +12,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 final authorizationEndpoint = Uri.parse('https://login.microsoftonline.com/294c7ede-2387-42ab-bbff-e5eb67ca3aee/oauth2/v2.0/authorize');
+//final authorizationEndpoint = Uri.parse('294c7ede-2387-42ab-bbff-e5eb67ca3aee');
 final tokenEndpoint = Uri.parse('https://login.microsoftonline.com/294c7ede-2387-42ab-bbff-e5eb67ca3aee/oauth2/v2.0/token');
 
 final identifier = 'bbe45ebc-fb38-48d8-8abd-9c5a9d38a6fd';
 final secret = 'xR-7Q~wBycyWLmcH58q7qfY-5CJ4RSPSxpysg';
 
-final redirectUrl = Uri.parse('');
+final redirectUrl = Uri.parse('https://login.microsoftonline.com/common/oauth2/nativeclient');
 final credentialsFile = File('~/.myapp/credentials.json'); //TODO:Check for correct location ?
 
 void main() => runApp(const MyApp());
@@ -38,6 +42,8 @@ class MyApp extends StatelessWidget{
 Future<oauth2.Client> createClient() async {
   var exists = await credentialsFile.exists();
 
+  print('exists = $exists');
+
   if(exists) {
     var credentials =
         oauth2.Credentials.fromJson(await credentialsFile.readAsString());
@@ -47,20 +53,42 @@ Future<oauth2.Client> createClient() async {
   var grant = oauth2.AuthorizationCodeGrant(
     identifier, authorizationEndpoint, tokenEndpoint, secret: secret);
 
+  print('grant = $grant');
+  print('redirectUrl = $redirectUrl');
+
   var authorizationUrl = grant.getAuthorizationUrl(redirectUrl);
 
-  await redirect(authorizationUrl);
+  print ('authorizationUrl = $authorizationUrl');
 
-  var responseUrl = await listen(redirectUrl);
+  if(await canLaunch(authorizationUrl.toString())) {
+    await launch(authorizationUrl.toString());
+  }
+
+  //await redirect(authorizationUrl);
+
+  Uri? responseUrl;
+
+
+
+
+
+  responseUrl = await listen(redirectUrl);
 
   return await grant.handleAuthorizationResponse(responseUrl.queryParameters);
 }
 
 Future<void> redirect(Uri url) async {
+  /*
+  if(await canLaunch(url.toString())) {
+    await launch(url.toString());
+  }
 
+   */
 }
 
 Future<Uri> listen (Uri url) async {
+
+
 
   return Uri();
 }
@@ -83,6 +111,8 @@ class _MyHomePageState extends State<MyHomePage>{
   final AadOAuth oauth = AadOAuth(config);
   */
   String? accessToken;
+
+
 
   @override
   Widget build(BuildContext context){
@@ -162,6 +192,18 @@ class _MyHomePageState extends State<MyHomePage>{
   }
 
   void login() async {
+
+
+    try {
+      var client = await createClient();
+
+      accessToken = client.credentials.accessToken;
+
+    }catch(e){
+      showError(e);
+    }
+
+
     /*
     try{
       await oauth.login();
@@ -185,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage>{
 
   Future<MSlamData> fetchMSlamData() async {
 
-    accessToken = ''; //await oauth.getAccessToken();
+    //accessToken = ''; //await oauth.getAccessToken();
 
     showMessage(accessToken as String);
 
